@@ -37,13 +37,13 @@ Date:   Wed Jul 29 11:28:29 2015 +0300
 
 --- a/gcc/config.gcc
 +++ b/gcc/config.gcc
-@@ -1022,14 +1022,18 @@ aarch64*-*-freebsd*)
- 	tm_defines="${tm_defines}  TARGET_DEFAULT_ASYNC_UNWIND_TABLES=1"
+@@ -1083,14 +1083,18 @@ aarch64*-*-netbsd*)
+ 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
  	;;
  aarch64*-*-linux*)
 -	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h"
 +	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h linux-android.h glibc-stdint.h"
- 	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-linux.h"
+ 	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-linux.h"
 +	extra_options="${extra_options} linux-android.opt"
  	tmake_file="${tmake_file} aarch64/t-aarch64 aarch64/t-aarch64-linux"
  	tm_defines="${tm_defines}  TARGET_DEFAULT_ASYNC_UNWIND_TABLES=1"
@@ -57,7 +57,7 @@ Date:   Wed Jul 29 11:28:29 2015 +0300
  	esac
  	aarch64_multilibs="${with_multilib_list}"
  	if test "$aarch64_multilibs" = "default"; then
-@@ -2272,6 +2276,17 @@ mips*-*-linux*)				# Linux MIPS, either
+@@ -2501,6 +2505,17 @@ mips*-*-linux*)				# Linux MIPS, either
  	tm_file="dbxelf.h elfos.h gnu-user.h linux.h linux-android.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/linux.h mips/linux-common.h"
  	extra_options="${extra_options} linux-android.opt"
  	case ${target} in
@@ -157,12 +157,14 @@ Date:   Wed Jul 29 11:28:29 2015 +0300
  #define MUSL_DYNAMIC_LINKER "/lib/ld-musl-aarch64%{mbig-endian:_be}%{mabi=ilp32:_ilp32}.so.1"
 --- a/gcc/config/arm/arm.h
 +++ b/gcc/config/arm/arm.h
-@@ -1856,10 +1856,11 @@ enum arm_auto_incmodes
+@@ -1972,12 +1972,13 @@ enum arm_auto_incmodes
  
- #define CASE_VECTOR_PC_RELATIVE (TARGET_THUMB2				\
- 				 || (TARGET_THUMB1			\
-+				     && !inline_thumb1_jump_table	\
- 				     && (optimize_size || flag_pic)))
+ #define CASE_VECTOR_PC_RELATIVE ((TARGET_THUMB2				\
+ 				  || (TARGET_THUMB1			\
++				      && !inline_thumb1_jump_table	\
+ 				      && (optimize_size || flag_pic)))	\
+ 				 && (!target_pure_code))
+ 
  
  #define CASE_VECTOR_SHORTEN_MODE(min, max, body)			\
 -  (TARGET_THUMB1							\
@@ -172,8 +174,8 @@ Date:   Wed Jul 29 11:28:29 2015 +0300
        : min >= -256 && max < 256					\
 --- a/gcc/config/arm/arm.md
 +++ b/gcc/config/arm/arm.md
-@@ -8894,7 +8894,7 @@
-    (match_operand:SI 2 "const_int_operand" "")	; total range
+@@ -9342,7 +9342,7 @@
+    (match_operand:SI 2 "const_int_operand")	; total range
     (match_operand:SI 3 "" "")			; table label
     (match_operand:SI 4 "" "")]			; Out of range label
 -  "(TARGET_32BIT || optimize_size || flag_pic) && !target_pure_code"
@@ -228,9 +230,9 @@ Date:   Wed Jul 29 11:28:29 2015 +0300
  #ifndef LINK_SPEC
 --- a/gcc/config/arm/linux-eabi.h
 +++ b/gcc/config/arm/linux-eabi.h
-@@ -105,11 +105,16 @@
- #define CC1_SPEC							\
-   LINUX_OR_ANDROID_CC (GNU_USER_TARGET_CC1_SPEC " " ASAN_CC1_SPEC,	\
+@@ -108,11 +108,16 @@
+   LINUX_OR_ANDROID_CC (GNU_USER_TARGET_CC1_SPEC " " ASAN_CC1_SPEC " "	\
+ 		       FDPIC_CC1_SPEC,					\
  		       GNU_USER_TARGET_CC1_SPEC " " ASAN_CC1_SPEC " "	\
 -		       ANDROID_CC1_SPEC)
 +		       ANDROID_CC1_SPEC("-fpic"))
@@ -450,9 +452,9 @@ Date:   Wed Jul 29 11:28:29 2015 +0300
  #if ((defined(_LIBOBJC) || defined(_LIBOBJC_WEAK)) \
 --- a/libstdc++-v3/configure
 +++ b/libstdc++-v3/configure
-@@ -78742,6 +78742,18 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_
- /* end confdefs.h.  */
+@@ -74306,6 +74306,18 @@ cat confdefs.h - <<_ACEOF >conftest.$ac_
  #include <sys/syscall.h>
+ 	   #include <unistd.h>
  	   int lk;
 +#if !defined(SYS_gettid)
 +#define SYS_gettid __NR_gettid
