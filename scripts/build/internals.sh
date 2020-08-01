@@ -138,5 +138,13 @@ do_finish() {
         CT_InstallCopyingInformation
     fi
 
+    if [ "${CT_TARBALL_RESULT}" = y ]; then
+        CT_DoLog EXTRA "Creating binary toolchain tarball:"
+        CT_DoLog EXTRA "${CT_TARGET}.tar.xz"
+        cd "${CT_PREFIX_DIR}"
+        cd ..
+        tar -cJf "${CT_TARGET}.tar.xz" "${CT_TARGET}"
+    fi
+
     CT_EndStep
 }
