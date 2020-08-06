@@ -143,6 +143,7 @@ do_finish() {
         CT_DoLog EXTRA "${CT_TARGET}.tar.xz"
         cd "${CT_PREFIX_DIR}"
         cd ..
+        rm -f "${CT_TARGET}.tar.xz"
         tar -cJf "${CT_TARGET}.tar.xz" "${CT_TARGET}"
     fi
 
